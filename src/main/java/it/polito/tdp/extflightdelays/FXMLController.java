@@ -82,7 +82,7 @@ public class FXMLController {
     	if(percorso == null) {
     		txtResult.appendText("I due aeroporti non sono collegati\n");
     	} else {
-    		txtResult.appendText(percorso.toString());
+    		txtResult.appendText(percorso.toString()+"\n");
     	}
 
     }

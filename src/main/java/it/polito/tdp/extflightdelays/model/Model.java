@@ -23,7 +23,7 @@ public class Model {
 	private Map<Integer, Airport> idMap;
 	private ExtFlightDelaysDAO dao;
 
-	private Map<Airport, Airport> visita = new HashMap<>();
+	private Map<Airport, Airport> visita;
 
 	public int nVertex() {
 		return this.grafo.vertexSet().size();
@@ -87,6 +87,7 @@ public class Model {
 		// visitiamo il grafo e agganciamo un iteratore
 		BreadthFirstIterator<Airport, DefaultWeightedEdge> it = new BreadthFirstIterator<>(this.grafo, a1);
 
+		visita = new HashMap<>();
 		// aggiungo la radice dell'albero
 		visita.put(a1/* partenza */, null);
 
