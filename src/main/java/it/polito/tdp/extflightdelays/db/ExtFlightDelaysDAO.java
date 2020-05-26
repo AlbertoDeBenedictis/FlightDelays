@@ -7,10 +7,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import it.polito.tdp.extflightdelays.model.Airline;
 import it.polito.tdp.extflightdelays.model.Airport;
 import it.polito.tdp.extflightdelays.model.Flight;
+import it.polito.tdp.extflightdelays.model.Rotta;
 
 public class ExtFlightDelaysDAO {
 
@@ -37,9 +39,13 @@ public class ExtFlightDelaysDAO {
 		}
 	}
 
-	public List<Airport> loadAllAirports() {
+	/**
+	 * Carica gli elementi nella idMap degli aeroporti in modo smart
+	 * @param idMap
+	 */
+	public void loadAllAirports(Map<Integer, Airport> idMap) {
 		String sql = "SELECT * FROM airports";
-		List<Airport> result = new ArrayList<Airport>();
+		
 
 		try {
 			Connection conn = ConnectDB.getConnection();
@@ -47,14 +53,18 @@ public class ExtFlightDelaysDAO {
 			ResultSet rs = st.executeQuery();
 
 			while (rs.next()) {
+				if(!idMap.containsKey(rs.getInt("ID"))) {
 				Airport airport = new Airport(rs.getInt("ID"), rs.getString("IATA_CODE"), rs.getString("AIRPORT"),
 						rs.getString("CITY"), rs.getString("STATE"), rs.getString("COUNTRY"), rs.getDouble("LATITUDE"),
 						rs.getDouble("LONGITUDE"), rs.getDouble("TIMEZONE_OFFSET"));
-				result.add(airport);
+				
+				idMap.put(airport.getId(), airport);
+				}
+				
 			}
 
 			conn.close();
-			return result;
+			
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -90,5 +100,80 @@ public class ExtFlightDelaysDAO {
 			System.out.println("Errore connessione al database");
 			throw new RuntimeException("Error Connection Database");
 		}
+	}
+
+	public int getAirlinesNumber(Airport a) {
+		
+		
+		String sql = "select count(distinct airline_id)as numero_com from flights where (origin_airport_id = ?) OR (destination_airport_id = ?)";
+		
+		int res = -1;
+		
+		try {
+			Connection conn = ConnectDB.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			
+			st.setInt(1, a.getId());
+			st.setInt(2, a.getId());
+			
+			ResultSet rs = st.executeQuery();
+
+			// NON HO BISOGNO DEL WHILE PERCHè HO UNA SOLA RIGA
+			if(rs.next()) {
+				
+				res = rs.getInt("numero_com");
+			}
+
+			conn.close();
+			
+		
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Errore connessione al database");
+			throw new RuntimeException("Error Connection Database");
+		}
+		
+		
+		return res;
+		
+	}
+
+	public List<Rotta> getRotte(Map<Integer, Airport> idMap) {
+		
+
+		String sql = "select origin_airport_id as origine, destination_airport_id as arrivo, count(*) as peso from flights group by origin_airport_id, destination_airport_id";
+
+		List<Rotta> listaRotte = new ArrayList<>();
+
+		try {
+			Connection conn = ConnectDB.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			ResultSet rs = st.executeQuery();
+
+			while (rs.next()) {
+				Airport sorgente = idMap.get(rs.getInt("origine"));
+				Airport destinazione = idMap.get(rs.getInt("arrivo"));
+				
+				if(sorgente!=null && destinazione != null) {
+
+				Rotta coppia = new Rotta(sorgente, destinazione, rs.getInt("peso"));
+				listaRotte.add(coppia);
+				}else {
+					System.err.print("ERRORE IN GET ROTTE");
+				}
+
+			}
+			
+			// occhio a ritornare sempre la lista FUORI DAL WHILE!
+			conn.close();
+			return listaRotte;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+	return null;
+		
 	}
 }
